@@ -1,6 +1,6 @@
 module Sudoku where
 
-import qualified Data.List
+import qualified Data.List (nub)
 
 {-
     Sudoku.hs - solver for sudoku puzzles using an "elegant brute" approach
@@ -94,7 +94,7 @@ blank = elem '0'
   Example: cp [[1,2],[4,5]] = [[1,4],[1,5],[2,4],[2,5]]
   Tip: You can use a list comprehension for this.
 -}
-cp :: [[Int]] -> [(Int, Int)]
+cp :: [[a]] -> [(a, a)]
 cp lists = [ (x, y) | x <- xs, y <- ys ]
            where xs = head lists
                  ys = head (tail lists)
@@ -105,8 +105,8 @@ cp lists = [ (x, y) | x <- xs, y <- ys ]
 -}
 group :: Int -> [a] -> [[a]]
 group _ [] = []
-group n xs = as : group n bs
-  where (as, bs) = splitAt n xs
+group n xs = ys : group n zs
+  where (ys, zs) = splitAt n xs
 
 {-
   Returns a list of "groups" to its original form.
@@ -121,32 +121,34 @@ ungroup xs = concat xs
   Tip: This one is trivial since a grid should already be a list of rows!
 -}
 rows :: Matrix Digit -> Matrix Digit
-rows matrix = matrix
+rows mtrx = mtrx
 
 {-
   Returns a list whose elements are the columns from the original matrix.
   Tip: Apply your unparalleled mastery of recursion.
 -}
-cols :: [[Digit]] -> [[Digit]]
-cols matrix = colsHelper matrix 2 (zipWith (\x y -> [x, y]) (matrix !! 0) (matrix !! 1))
-        where colsHelper mtrx row rsf | row > length(matrix) - 1 = rsf
-                                      | otherwise = colsHelper mtrx (row + 1) (zipWith (\x y -> x ++ y) (rsf) (group 1 (mtrx !! row)))
+cols :: Matrix Digit -> Matrix Digit
+cols ([]:_) = []
+cols mtrx = (map head mtrx) : cols (map tail mtrx)
+-- cols matrix = Data.list.transpose matrix -- THIS WOULD MAKE THINGS EASIER
+
 
 {-
   Returns a list whose elements represent all of non-overlapping 3x3
   sub-grids from the original matrix, so that each sub-grid is a single
   list.
-  Example: boxs textPuzzle = [ "603708491", ..., "095804713" ]
+  Example: boxs testPuzzle = [ "603708491", ..., "095804713" ]
   Tip: Use point-free function compisition with only map, group, ungroup, cols
 -}
-boxs = undefined
+-- boxs :: Matrix Digit -> Matrix Digit
+-- boxs mtrx =
 
 {-
   Returns true provided no element of the list appears twice, false otherwise.
   Tip: Look up the pre-defined function all from Prelude.
 -}
-nodups :: (Eq a) => [a] -> [a]
-nodups xs = Data.List.nub xs
+nodups :: (Eq a) => [a] -> Bool
+nodups xs = (Data.List.nub xs) == xs -- To-do: Make own implementation
 
 -- ***************************
 
