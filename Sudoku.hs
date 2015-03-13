@@ -20,7 +20,7 @@ type Matrix a = [Row a]
 -- A Digit is a single character
 type Digit = Char
 -- A Grid is a matrix of digits
-type Grid a = [Matrix a]
+type Grid = Matrix Digit
 -- We represent available choices as a list of digits
 type Choices = [Digit]
 
@@ -77,14 +77,15 @@ solve = undefined
 -- ******** Auxiliary Functions ********
 
 -- Just a list of all the valid digits.
+digits :: [Int]
 digits = [1..9]
 
 {-
   Simple predicate that tests if a cell is blank.
   Use point-free partial function application.
 -}
--- blank :: Choices -> Bool
--- blank = undefined
+blank :: Choices -> Bool
+blank = elem '0'
 
 {-
   Computes, as a list, the Cartesian product of lists. A Cartesian product of
@@ -99,11 +100,13 @@ cp lists = [ (x, y) | x <- xs, y <- ys ]
                  ys = head (tail lists)
 
 {-
-  Grabs sub-lists of 3 elements at-a-time and builds a list of these groups.
-  Example: group "603719458" = ["603","719","458"]
+  Grabs sub-lists of n elements at-a-time and builds a list of these groups.
+  Example: group 3 "603719458" = ["603","719","458"]
 -}
-group :: [a] -> [[a]]
-group = undefined
+group :: Int -> [a] -> [[a]]
+group _ [] = []
+group n xs = as : group n bs
+  where (as, bs) = splitAt n xs
 
 {-
   Returns a list of "groups" to its original form.
@@ -111,19 +114,23 @@ group = undefined
   Tip: There is a pre-defined function that does exactly what we need.
 -}
 ungroup :: [[a]] -> [a]
-ungroup = concat
+ungroup xs = concat xs
 
 {-
   Returns a list whose elements are rows of the original matrix.
   Tip: This one is trivial since a grid should already be a list of rows!
 -}
-rows = undefined
+rows :: Matrix Digit -> Matrix Digit
+rows matrix = matrix
 
 {-
   Returns a list whose elements are the columns from the original matrix.
   Tip: Apply your unparalleled mastery of recursion.
 -}
-cols = undefined
+cols :: [[Digit]] -> [[Digit]]
+cols matrix = colsHelper matrix 2 (zipWith (\x y -> [x, y]) (matrix !! 0) (matrix !! 1))
+        where colsHelper mtrx row rsf | row > length(matrix) - 1 = rsf
+                                      | otherwise = colsHelper mtrx (row + 1) (zipWith (\x y -> x ++ y) (rsf) (group 1 (mtrx !! row)))
 
 {-
   Returns a list whose elements represent all of non-overlapping 3x3
@@ -139,7 +146,7 @@ boxs = undefined
   Tip: Look up the pre-defined function all from Prelude.
 -}
 nodups :: (Eq a) => [a] -> [a]
-nodups = Data.List.nub
+nodups xs = Data.List.nub xs
 
 -- ***************************
 
