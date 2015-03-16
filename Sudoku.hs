@@ -43,8 +43,14 @@ solve = undefined
    Example: head $ choices testPuzzle =
                 ["6","123456789","3","7","1","9","4","5","8"]  -- first row
 -}
--- choices :: Grid -> Matrix Choices
--- choices = undefined
+choices :: Grid -> Matrix Choices
+choices grid = reverse $ choicesHelper grid []
+        where choicesHelper [] rsf = rsf
+              choicesHelper (g:gs) rsf = choicesHelper gs ((replaceBlanks (group 1 g)):rsf)
+              replaceBlanks row = replaceBlanksHelper row []
+                            where replaceBlanksHelper [] rsf = rsf
+                                  replaceBlanksHelper (x:xs) rsf | x == "0" = replaceBlanksHelper xs (rsf ++ [digits])
+                                                                 | otherwise = replaceBlanksHelper xs (rsf ++ [x])
 
 {-
   Generate a complete list of all possible expansions of the grid given the
@@ -77,8 +83,8 @@ solve = undefined
 -- ******** Auxiliary Functions ********
 
 -- Just a list of all the valid digits.
-digits :: [Int]
-digits = [1..9]
+-- digits :: [a]
+digits = ['0'..'9']
 
 {-
   Simple predicate that tests if a cell is blank.
@@ -120,14 +126,14 @@ ungroup xs = concat xs
   Returns a list whose elements are rows of the original matrix.
   Tip: This one is trivial since a grid should already be a list of rows!
 -}
-rows :: Matrix Digit -> Matrix Digit
+rows :: Grid -> Grid
 rows mtrx = mtrx
 
 {-
   Returns a list whose elements are the columns from the original matrix.
   Tip: Apply your unparalleled mastery of recursion.
 -}
-cols :: Matrix Digit -> Matrix Digit
+cols :: Grid -> Grid
 cols ([]:_) = []
 cols mtrx = (map head mtrx) : cols (map tail mtrx)
 -- cols matrix = Data.list.transpose matrix -- THIS WOULD MAKE THINGS EASIER
@@ -140,8 +146,13 @@ cols mtrx = (map head mtrx) : cols (map tail mtrx)
   Example: boxs testPuzzle = [ "603708491", ..., "095804713" ]
   Tip: Use point-free function compisition with only map, group, ungroup, cols
 -}
--- boxs :: Matrix Digit -> Matrix Digit
--- boxs mtrx =
+-- boxs mtrx
+--   | mtrx == [[],[],[],[],[],[],[],[],[]] = []
+--   | otherwise = (map concat (group 3 (map head (map (group 3) (mtrx))))) ++ boxs (map tail (map (group 3) mtrx))
+boxs :: Grid -> Grid
+boxs mtrx = concat $ map (group 9 . concat) (boxsHelper mtrx)
+  where boxsHelper ([]:_) = []
+        boxsHelper mtrx = group 9 $ concat $ map (head . group 3) mtrx : boxsHelper (map (concat . tail . group 3) mtrx)
 
 {-
   Returns true provided no element of the list appears twice, false otherwise.
