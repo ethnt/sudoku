@@ -1,6 +1,7 @@
 module Sudoku where
 
-import qualified Data.List (nub)
+import qualified Data.List (nub, elemIndex)
+import qualified Data.Maybe (fromMaybe)
 
 {-
     Sudoku.hs - solver for sudoku puzzles using an "elegant brute" approach
@@ -33,8 +34,14 @@ type Choices = [Digit]
     3. Identify each valid grid (valid) and select out only such grids (filter)
     Example: head $ solveSuperSlow testPuzzle
 -}
---solve :: ???
-solve = undefined
+-- solve :: Grid -> Maybe Grid
+-- solve grid = solveHelper (expand grid) Nothing
+--         where solveHelper (g:gr) rsf | rsf /= Nothing = rsf
+--                                      | gr == [] = Nothing
+--                                      | otherwise = if (valid g) then solveHelper gr (Just g) else solveHelper gr Nothing
+
+solve grid = filter valid (expand grid)
+
 
 {-
     For each row... For each cell in that row...
@@ -52,6 +59,7 @@ choices grid = reverse $ choicesHelper grid []
                                   replaceBlanksHelper (x:xs) rsf | x == "0" = replaceBlanksHelper xs (rsf ++ [digits])
                                                                  | otherwise = replaceBlanksHelper xs (rsf ++ [x])
 
+
 {-
   Generate a complete list of all possible expansions of the grid given the
   choices for initially blank cells. Think of this as a... cartesian product!
@@ -66,25 +74,54 @@ choices grid = reverse $ choicesHelper grid []
                                                   "314287195",
                                                   "975361814",
                                                   "286491713" ]
+
+  Actual example: head $ expand testPuzzle = [ "613719458",
+                                                "718624931",
+                                                "491813276",
+                                                "569178342",
+                                                "837542169",
+                                                "141936587",
+                                                "314287195",
+                                                "975361814",
+                                                "286491713" ]
 -}
--- expand:: Matrix Choices -> [Grid]
--- expand = undefined
+expand :: Grid -> Matrix Choices
+expand m = sequence $ map sequence $ choices m
+
 
 {-
   A valid grid is one for which...
     each row contains no duplicates,
     each column contains no duplicates,
     each box (3x3) contains no duplicates
-    Example: valid $ head $ expand $ choices testPuzzle = False
+    Example: valid $ head $ expand testPuzzle = False
 -}
--- valid :: Grid -> Bool
--- valid g = undefined
+valid :: Grid -> Bool
+valid g = validCols g && validRows g && validBoxs g
+    where validCols g = validColsHelper (cols g) True
+              where validColsHelper _ False = False
+                    validColsHelper (_:[]) True = False
+                    validColsHelper (x:xs) rsf = validColsHelper xs (nodups x)
+
+          validRows g = validRowsHelper (rows g) True
+                  where validRowsHelper _ False = False
+                        validRowsHelper (_:[]) True = False
+                        validRowsHelper (x:xs) rsf = validRowsHelper xs (nodups x)
+
+          validBoxs g = validBoxsHelper (boxs g) True
+                  where validBoxsHelper _ False = False
+                        validBoxsHelper (_:[]) True = False
+                        validBoxsHelper (x:xs) rsf = validBoxsHelper xs (nodups x)
+
+
 
 -- ******** Auxiliary Functions ********
 
+
 -- Just a list of all the valid digits.
 -- digits :: [a]
-digits = ['0'..'9']
+digits = ['1'..'9']
+
 
 {-
   Simple predicate that tests if a cell is blank.
@@ -92,6 +129,7 @@ digits = ['0'..'9']
 -}
 blank :: Choices -> Bool
 blank = elem '0'
+
 
 {-
   Computes, as a list, the Cartesian product of lists. A Cartesian product of
@@ -105,6 +143,7 @@ cp lists = [ (x, y) | x <- xs, y <- ys ]
            where xs = head lists
                  ys = head (tail lists)
 
+
 {-
   Grabs sub-lists of n elements at-a-time and builds a list of these groups.
   Example: group 3 "603719458" = ["603","719","458"]
@@ -114,6 +153,7 @@ group _ [] = []
 group n xs = ys : group n zs
   where (ys, zs) = splitAt n xs
 
+
 {-
   Returns a list of "groups" to its original form.
   Example: ungroup ["603","719","458"] = "603719458"
@@ -122,12 +162,14 @@ group n xs = ys : group n zs
 ungroup :: [[a]] -> [a]
 ungroup xs = concat xs
 
+
 {-
   Returns a list whose elements are rows of the original matrix.
   Tip: This one is trivial since a grid should already be a list of rows!
 -}
 rows :: Grid -> Grid
 rows mtrx = mtrx
+
 
 {-
   Returns a list whose elements are the columns from the original matrix.
@@ -136,7 +178,6 @@ rows mtrx = mtrx
 cols :: Grid -> Grid
 cols ([]:_) = []
 cols mtrx = (map head mtrx) : cols (map tail mtrx)
--- cols matrix = Data.list.transpose matrix -- THIS WOULD MAKE THINGS EASIER
 
 
 {-
@@ -146,13 +187,11 @@ cols mtrx = (map head mtrx) : cols (map tail mtrx)
   Example: boxs testPuzzle = [ "603708491", ..., "095804713" ]
   Tip: Use point-free function compisition with only map, group, ungroup, cols
 -}
--- boxs mtrx
---   | mtrx == [[],[],[],[],[],[],[],[],[]] = []
---   | otherwise = (map concat (group 3 (map head (map (group 3) (mtrx))))) ++ boxs (map tail (map (group 3) mtrx))
 boxs :: Grid -> Grid
 boxs mtrx = concat $ map (group 9 . concat) (boxsHelper mtrx)
   where boxsHelper ([]:_) = []
         boxsHelper mtrx = group 9 $ concat $ map (head . group 3) mtrx : boxsHelper (map (concat . tail . group 3) mtrx)
+
 
 {-
   Returns true provided no element of the list appears twice, false otherwise.
@@ -160,6 +199,7 @@ boxs mtrx = concat $ map (group 9 . concat) (boxsHelper mtrx)
 -}
 nodups :: (Eq a) => [a] -> Bool
 nodups xs = (Data.List.nub xs) == xs -- To-do: Make own implementation
+
 
 -- ***************************
 
@@ -174,3 +214,17 @@ testPuzzle = [
     "975361804",
     "286490713"
     ]
+
+testPuzzle2 = [
+    "050060001",
+    "004800070",
+    "800000052",
+    "200057030",
+    "000000000",
+    "030690005",
+    "790000008",
+    "010006500",
+    "500030060"
+    ]
+
+main = print (head $ solve testPuzzle2)
